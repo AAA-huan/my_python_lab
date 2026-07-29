@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# idea
+.idea
+
+# 调色板
+PaletteCraft/.python-version
+PaletteCraft/.idea
+PaletteCraft/uv.lock
+PaletteCraft/pyproject.toml
