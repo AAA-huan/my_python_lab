@@ -19,7 +19,10 @@ def api_generate():
     # 调用调色器
     cu = ColorUtils(hex_color)
     palette = cu.calculate_palette_from_hex(mode)
-    return palette
+    data = {
+        'palette': palette
+    }
+    return jsonify(data)
 
 @app.route('/api/extract', methods=['GET', 'POST'])
 def api_extract():
@@ -29,7 +32,10 @@ def api_extract():
     # 调用图片处理器
     iu = ImageUtils(img_file)
     color = iu.get_palette()
-    return  color[0]
+    data = {
+        'color': color[0]
+    }
+    return  jsonify(data)
 
 if __name__ == "__main__":
     app.run('host/port/debug')

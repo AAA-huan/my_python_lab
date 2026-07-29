@@ -114,6 +114,7 @@ class ColorUtils:
 
         hue_list = func_map[mode](base_h)
 
+        # 每个新色相 + 原始S、V → RGB → HEX
         result_hex = []
         for h in hue_list:
             nr, ng, nb = self.hsv2rgb(h, s, v)
