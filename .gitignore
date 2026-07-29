@@ -225,3 +225,4 @@ PaletteCraft/.python-version
 PaletteCraft/.idea
 PaletteCraft/uv.lock
 PaletteCraft/pyproject.toml
+/PaletteCraft/DEVELOPMENT.md

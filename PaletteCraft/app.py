@@ -18,13 +18,13 @@ def api_generate():
 
     # 调用调色器
     cu = ColorUtils(hex_color)
-    palette = cu.calculate_palette_from_hex(cu.hex, mode)
+    palette = cu.calculate_palette_from_hex(mode)
     return palette
 
 @app.route('/api/extract', methods=['GET', 'POST'])
 def api_extract():
     """提取颜色的主色调"""
-    img_file = request.files['image']
+    img_file = request.files['image'].read()
 
     # 调用图片处理器
     iu = ImageUtils(img_file)
@@ -32,4 +32,4 @@ def api_extract():
     return  color[0]
 
 if __name__ == "__main__":
-    app.run()
+    app.run('host/port/debug')
