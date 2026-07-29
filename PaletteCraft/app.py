@@ -38,4 +38,4 @@ def api_extract():
     return  jsonify(data)
 
 if __name__ == "__main__":
-    app.run('host/port/debug')
+    app.run(debug=True)
