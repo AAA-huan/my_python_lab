@@ -12,16 +12,33 @@ def index():
 
 @app.route('/api/generate', methods=['GET', 'POST'])
 def api_generate():
-    """接收主色hex值，返回配色方案列表"""
-    hex_color = request.json.get('color')
-    mode = request.json.get('mode')
+
+    #
+    # 1. 优先尝试从 JSON Body 中获取数据 (适配你现在的手机前端)
+    data = request.get_json(silent=True)
+
+    # 2. 如果 JSON 为空，再尝试从 URL 参数获取 (保留对 GET 请求的兼容)
+    if not data:
+        data = request.args
+
+    # 3. 从统一的数据源中提取参数
+    hex_color = data.get('color')
+    mode = data.get('mode')
+
+    # --- 以下是你原本的校验逻辑 ---
+    if not hex_color or not mode:
+        return jsonify({'error': '参数错误'}), 400
+    print(f"Args: {request.args}")
+    print(f"Form: {request.form}")
+    print(f"JSON: {request.get_json(silent=True)}")
+    #
 
     # 校验参数
     if not hex_color or not mode:
         return jsonify({'error': '参数错误'}), 400
 
     # 校验模式
-    if mode not in ['hex', 'rgb']:
+    if mode not in ['get_complementary_hues', 'get_analogous_hues', 'get_triadic_hues']:
         return jsonify({'error': '模式错误'}), 400
 
     # 校验hex值

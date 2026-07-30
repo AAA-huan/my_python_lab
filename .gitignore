@@ -224,5 +224,7 @@ __marimo__/
 PaletteCraft/.python-version
 PaletteCraft/.idea
 PaletteCraft/uv.lock
-PaletteCraft/pyproject.toml
+PaletteCraft/AGENTS.md
+/AGENTS.md
 /PaletteCraft/DEVELOPMENT.md
+/DEVELOPMENT.md
