@@ -90,24 +90,29 @@ class ColorUtils:
             self.wrap_hue(base_hue + 240)
         ]
 
-    def calculate_palette_from_hex(self, input_hex: str, palette_func, span=30.0):
+    def calculate_palette_from_hex(self, mode: str, span=30.0):
         """
         【核心封装函数】输入HEX，输出整套配色的HEX列表
-        :param input_hex: 原始颜色 #xxxxxx
-        :param palette_func: 配色函数（互补/类比/三角）
+        :param mode: 配色函数（互补/类比/三角）
         :param span: 类比色间隔角度
         :return: 一组新的hex颜色字符串列表
         """
         # HEX → RGB
-        r, g, b = self.hex2rgb(input_hex)
+        r, g, b = self.hex2rgb(self.hex)
         # RGB → HSV，提取色相、保留原始饱和度、明度【关键！】
         base_h, s, v = self.rgb2hsv(r, g, b)
 
-        # 根据配色方案计算一组色相
-        if palette_func.__name__ == "get_analogous_hues":
-            hue_list = palette_func(base_h, span)
-        else:
-            hue_list = palette_func(base_h)
+        # 用字典映射在内部做分发
+        func_map = {
+            'complementary': lambda h: self.get_complementary_hues(h),
+            'analogous': lambda h: self.get_analogous_hues(h, span),
+            'triadic': lambda h: self.get_triadic_hues(h),
+        }
+
+        if mode not in func_map:
+            raise ValueError(f"Unknown mode: {mode}")
+
+        hue_list = func_map[mode](base_h)
 
         # 每个新色相 + 原始S、V → RGB → HEX
         result_hex = []

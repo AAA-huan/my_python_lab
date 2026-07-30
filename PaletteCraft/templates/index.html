@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaletteCraft · 智能配色生成器</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #f5f0eb 0%, #e8e0d8 100%); color: #1a1a1a; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .container { width: 100%; max-width: 620px; background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-radius: 16px; padding: 36px 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+  .logo { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8a7a6a; font-weight: 500; margin-bottom: 6px; }
+  h1 { font-family: 'Lora', serif; font-size: 28px; font-weight: 400; margin-bottom: 4px; }
+  .subtitle { color: #8a7a6a; font-size: 13px; margin-bottom: 28px; }
+  .section-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #8a7a6a; font-weight: 500; margin-bottom: 12px; margin-top: 24px; }
+  .section-title:first-of-type { margin-top: 0; }
+  .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .form-group { flex: 1; min-width: 140px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; color: #555; }
+  .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; background: white; font-size: 14px; font-family: 'Poppins', sans-serif; outline: none; transition: border-color 0.15s; }
+  .form-group input:focus, .form-group select:focus { border-color: #a08060; }
+  .form-group input[type="color"] { height: 44px; padding: 4px; cursor: pointer; }
+  .btn { padding: 10px 20px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.15s; background: rgba(255,255,255,0.6); color: #1a1a1a; white-space: nowrap; }
+  .btn:hover { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.2); }
+  .btn-primary { background: #a08060; color: white; border-color: #a08060; }
+  .btn-primary:hover { background: #8a6d50; }
+  .btn-full { width: 100%; margin-top: 8px; }
+  .palette { display: flex; gap: 6px; margin-top: 8px; }
+  .palette .swatch { flex: 1; height: 56px; border-radius: 8px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform 0.2s; cursor: pointer; position: relative; }
+  .palette .swatch:hover { transform: translateY(-4px); }
+  .palette .swatch .hex { position: absolute; bottom: 6px; font-size: 10px; opacity: 0.8; }
+  .palette-empty { font-size: 13px; color: #8a7a6a; font-style: italic; padding: 16px 0; text-align: center; }
+  .section-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 24px 0; }
+  .file-upload { position: relative; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .file-upload input[type="file"] { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; top: 0; left: 0; }
+  .file-label { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: 1px dashed rgba(0,0,0,0.15); border-radius: 8px; font-size: 13px; color: #555; cursor: pointer; transition: all 0.15s; flex: 1; }
+  .file-label:hover { border-color: #a08060; background: rgba(160,128,96,0.04); }
+  .extracted-color { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px; }
+  .extracted-color .preview { width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.06); }
+  .extracted-color .info { font-size: 13px; }
+  .extracted-color .info .hex-code { font-family: 'Lora', serif; font-weight: 600; }
+  .status { font-size: 12px; color: #8a7a6a; margin-top: 6px; min-height: 20px; }
+  @media (max-width: 480px) { .container { padding: 24px 18px; } .form-row { flex-direction: column; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">PaletteCraft</div>
+  <h1>智能配色生成器</h1>
+  <div class="subtitle">输入主色或上传图片，算法自动为你生成和谐配色方案</div>
+
+  <!-- Generate from color -->
+  <div class="section-title">✦ 从颜色生成</div>
+  <div class="form-row">
+    <div class="form-group" style="flex:0 0 60px">
+      <label>主色</label>
+      <input type="color" id="baseColor" value="#3A6EA5">
+    </div>
+    <div class="form-group">
+      <label>配色模式</label>
+      <select id="modeSelect">
+        <option value="get_complementary_hues">互补色</option>
+        <option value="get_analogous_hues" selected>类比色</option>
+        <option value="get_triadic_hues">三角色</option>
+      </select>
+    </div>
+    <div>
+      <button class="btn btn-primary" id="generateBtn" style="height:44px">生成配色</button>
+    </div>
+  </div>
+  <div class="palette" id="paletteDisplay"><div class="palette-empty">点击「生成配色」查看结果</div></div>
+  <div class="status" id="generateStatus"></div>
+
+  <div class="section-divider"></div>
+
+  <!-- Extract from image -->
+  <div class="section-title">✦ 从图片提取</div>
+  <div class="file-upload">
+    <div class="file-label" id="fileLabel">📁 选择图片文件（PNG / JPG）</div>
+    <input type="file" id="imageInput" accept="image/png,image/jpeg,image/jpg">
+    <button class="btn btn-primary" id="extractBtn">提取主色</button>
+  </div>
+  <div id="extractResult"></div>
+  <div class="status" id="extractStatus"></div>
+</div>
+
+<script>
+const API_GENERATE = '/api/generate';
+const API_EXTRACT = '/api/extract';
+
+// === Generate Palette ===
+document.getElementById('generateBtn').onclick = async () => {
+  const color = document.getElementById('baseColor').value;
+  const mode = document.getElementById('modeSelect').value;
+  const status = document.getElementById('generateStatus');
+  status.textContent = '生成中...';
+
+  try {
+    const res = await fetch(API_GENERATE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ color, mode })
+    });
+    if (!res.ok) throw new Error('请求失败');
+    const palette = await res.json();
+    renderPalette(palette);
+    status.textContent = `✅ 生成 ${palette.length} 个配色`;
+  } catch (e) {
+    status.textContent = '❌ ' + e.message;
+  }
+};
+
+function renderPalette(colors) {
+  const el = document.getElementById('paletteDisplay');
+  if (!colors || colors.length === 0) {
+    el.innerHTML = '<div class="palette-empty">未生成配色</div>';
+    return;
+  }
+  el.innerHTML = colors.map(c => {
+    const textColor = isLight(c) ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+    return `<div class="swatch" style="background:${c};color:${textColor}"><span class="hex">${c}</span></div>`;
+  }).join('');
+}
+
+function isLight(hex) {
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2),16);
+  const g = parseInt(c.substr(2,2),16);
+  const b = parseInt(c.substr(4,2),16);
+  return r*0.299 + g*0.587 + b*0.114 > 160;
+}
+
+// === Extract from Image ===
+document.getElementById('extractBtn').onclick = async () => {
+  const fileInput = document.getElementById('imageInput');
+  const file = fileInput.files[0];
+  const status = document.getElementById('extractStatus');
+  const result = document.getElementById('extractResult');
+
+  if (!file) {
+    status.textContent = '⚠️ 请先选择一张图片';
+    return;
+  }
+
+  status.textContent = '提取中...';
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch(API_EXTRACT, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('提取失败');
+    const color = await res.json();
+    const hex = color.hex || color;
+    result.innerHTML = `
+      <div class="extracted-color">
+        <div class="preview" style="background:${hex}"></div>
+        <div class="info">
+          主色调：<span class="hex-code">${hex}</span>
+        </div>
+      </div>`;
+    status.textContent = '✅ 提取成功';
+  } catch (e) {
+    status.textContent = '❌ ' + e.message;
+  }
+};
+
+// File name display
+document.getElementById('imageInput').onchange = function() {
+  if (this.files[0]) {
+    document.getElementById('fileLabel').textContent = '📁 ' + this.files[0].name;
+  }
+};
+
+// Enter to generate
+document.getElementById('modeSelect').onkeydown = e => { if (e.key === 'Enter') document.getElementById('generateBtn').click(); };
+</script>
+</body>
+</html>
