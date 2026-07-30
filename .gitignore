@@ -223,6 +223,6 @@ __marimo__/
 # 调色板
 PaletteCraft/.python-version
 PaletteCraft/.idea
-PaletteCraft/uv.lock
-PaletteCraft/pyproject.toml
+# uv lockfile — 建议纳入版本控制以保证可复现性
+# PaletteCraft/uv.lock
 /PaletteCraft/DEVELOPMENT.md

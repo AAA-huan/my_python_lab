@@ -103,9 +103,9 @@ document.getElementById('generateBtn').onclick = async () => {
       body: JSON.stringify({ color, mode })
     });
     if (!res.ok) throw new Error('请求失败');
-    const palette = await res.json();
-    renderPalette(palette);
-    status.textContent = `✅ 生成 ${palette.length} 个配色`;
+    const data = await res.json();
+    renderPalette(data.palette);
+    status.textContent = `✅ 生成 ${data.palette.length} 个配色`;
   } catch (e) {
     status.textContent = '❌ ' + e.message;
   }
@@ -150,8 +150,8 @@ document.getElementById('extractBtn').onclick = async () => {
   try {
     const res = await fetch(API_EXTRACT, { method: 'POST', body: formData });
     if (!res.ok) throw new Error('提取失败');
-    const color = await res.json();
-    const hex = color.hex || color;
+    const data = await res.json();
+    const hex = data.color.hex;
     result.innerHTML = `
       <div class="extracted-color">
         <div class="preview" style="background:${hex}"></div>
