@@ -225,5 +225,6 @@ PaletteCraft/.python-version
 PaletteCraft/.idea
 PaletteCraft/uv.lock
 PaletteCraft/AGENTS.md
+/AGENTS.md
 /PaletteCraft/DEVELOPMENT.md
 /DEVELOPMENT.md
