@@ -1,0 +1,14 @@
+[project]
+name = "palettecraft"
+version = "0.1.0"
+description = "智能配色生成器"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0",
+    "Pillow>=10.0",
+    "numpy>=1.24",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
