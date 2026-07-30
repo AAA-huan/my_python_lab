@@ -225,4 +225,6 @@ PaletteCraft/.python-version
 PaletteCraft/.idea
 # uv lockfile — 建议纳入版本控制以保证可复现性
 # PaletteCraft/uv.lock
+PaletteCraft/AGENTS.md
 /PaletteCraft/DEVELOPMENT.md
+/DEVELOPMENT.md
