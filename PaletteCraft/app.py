@@ -38,7 +38,7 @@ def api_generate():
         return jsonify({'error': '参数错误'}), 400
 
     # 校验模式
-    if mode not in ['get_complementary_hues', 'get_analogous_hues', 'get_triadic_hues']:
+    if mode not in ['complementary', 'analogous', 'triadic']:
         return jsonify({'error': '模式错误'}), 400
 
     # 校验hex值
@@ -75,4 +75,4 @@ def api_extract():
     return  jsonify(data)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

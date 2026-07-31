@@ -104,9 +104,9 @@ class ColorUtils:
 
         # 用字典映射在内部做分发
         func_map = {
-            'get_complementary_hues': lambda h: self.get_complementary_hues(h),
-            'get_analogous_hues': lambda h: self.get_analogous_hues(h, span),
-            'get_triadic_hues': lambda h: self.get_triadic_hues(h),
+            'complementary': lambda h: self.get_complementary_hues(h),
+            'analogous': lambda h: self.get_analogous_hues(h, span),
+            'triadic': lambda h: self.get_triadic_hues(h),
         }
 
         if mode not in func_map:

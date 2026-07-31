@@ -1,7 +1,6 @@
 from PIL import Image
 import numpy as np
 from io import BytesIO
-from collections import Counter
 
 
 class ImageUtils:
@@ -42,84 +41,14 @@ class ImageUtils:
         # 使用LANCZOS高质量缩放
         return self.img.resize((new_width, new_height), Image.LANCZOS)
 
-    def get_dominant_colors(self, n_colors=5, max_size=200, bins=32):
-        """
-        使用直方图法提取图片主色调
-        :param n_colors: 要提取的主色调数量
-        :param max_size: 预处理最大尺寸，None则跳过预处理
-        :param bins: 每个颜色通道的直方图bins数量（控制颜色精度）
-        :return: list of dict: [{'hex': '#RRGGBB', 'rgb': (r,g,b), 'percentage': float}, ...]
-        """
-        # 1. 预处理：降采样提高性能
-        if max_size:
-            processed_img = self._preprocess(max_size)
-        else:
-            processed_img = self.img
-
-        # 2. 转换为numpy数组
-        np_image = np.array(processed_img)  # shape: (H, W, 3)
-
-        # 3. 将像素量化到直方图桶中
-        #    每个通道256色压缩到bins个桶
-        #    计算每个像素对应的桶索引
-        bin_size = 256 // bins
-        quantized = (np_image // bin_size).astype(np.int32)
-
-        # 4. 将RGB三通道的桶索引组合成唯一键
-        #    key = r_bucket * bins^2 + g_bucket * bins + b_bucket
-        keys = (quantized[:, :, 0] * bins * bins +
-                quantized[:, :, 1] * bins +
-                quantized[:, :, 2])
-
-        # 5. 统计每个桶的像素数量
-        flat_keys = keys.flatten()
-        counter = Counter(flat_keys)
-
-        # 6. 获取频率最高的n_colors个桶
-        top_buckets = counter.most_common(n_colors)
-        total_pixels = len(flat_keys)
-
-        # 7. 计算每个桶的代表颜色（桶中心值）和占比
-        dominant_colors = []
-        for bucket_key, count in top_buckets:
-            # 从桶索引反推RGB值（取桶中心）
-            r_bucket = bucket_key // (bins * bins)
-            g_bucket = (bucket_key % (bins * bins)) // bins
-            b_bucket = bucket_key % bins
-
-            # 计算桶中心的RGB值，转换为Python原生int
-            r = int(r_bucket * bin_size + bin_size // 2)
-            g = int(g_bucket * bin_size + bin_size // 2)
-            b = int(b_bucket * bin_size + bin_size // 2)
-
-            # 限制在有效范围内
-            r = min(r, 255)
-            g = min(g, 255)
-            b = min(b, 255)
-
-            # 转换为HEX
-            hex_color = f"#{r:02X}{g:02X}{b:02X}"
-
-            # 计算占比百分比
-            percentage = round((count / total_pixels) * 100, 2)
-
-            dominant_colors.append({
-                'hex': hex_color,
-                'rgb': (r, g, b),
-                'percentage': percentage
-            })
-
-        return dominant_colors
-
-    def get_palette(self, n_colors=1, max_size=200, min_percentage=1.0):
+    def get_palette(self, n_colors: int=2, min_percentage: float=5.0):
         """
         获取完整调色板，过滤掉占比过低的颜色
         :param n_colors: 最大颜色数量
-        :param max_size: 预处理最大尺寸
         :param min_percentage: 最小占比阈值（百分比），低于此值的颜色将被过滤
         :return: list of dict，按占比降序排列
         """
-        colors = self.get_dominant_colors(n_colors=n_colors * 2, max_size=max_size)
+        colors = self.kmeans_colors()
 
         # 过滤低于阈值的颜色
         filtered = [c for c in colors if c['percentage'] >= min_percentage]
@@ -130,6 +59,80 @@ class ImageUtils:
 
         # 截取到需要的数量
         return filtered[:n_colors]
+
+
+    def kmeans_colors(self, n_colors: int =5, max_iter: int =20, tol: int =1.0):
+        """
+        使用 K-Means 聚类提取主色调
+        :param n_colors: 最大颜色数量
+        :param max_iter: 预处理最大尺寸
+        :param tol: 最小占比阈值（百分比），低于此值的颜色将被过滤
+        :return:
+        """
+        # 降采样预处理
+        processed = self._preprocess()
+        pixels = np.array(processed).reshape(-1, 3).astype(np.float32)
+
+        # k-means初始化
+        # 中心点选得越好算法迭代越快，结果越稳定
+        centroids = np.zeros((n_colors, 3))
+        # 第一个中心随机选一个像素
+        centroids[0] = pixels[np.random.randint(len(pixels))]
+        for i in range(1, n_colors):
+            # 对每个像素计算其到最近中心的距离
+            dists = np.min(
+                np.linalg.norm(
+                    pixels[:, np.newaxis] - centroids[:i], axis=2
+                ),
+                axis=1
+            )
+            # 距离越远被选中的概率越大（按权重重采样）
+            probs = dists / sum(dists)
+            centroids[i] = pixels[np.random.choice(len(pixels), p=probs)]
+
+        # 开始迭代聚类
+        for _ in range(max_iter):
+            # 计算每个像素到所有中心的距离
+            dists = np.linalg.norm(
+                pixels[:, np.newaxis] - centroids, axis=2
+            )
+            labels = np.argmin(dists, axis=1)  # 每个像素属于哪个簇
+
+            # 计算新的中心 = 每个簇像素的平均值
+            new_centroids = np.array([
+                pixels[labels == k].mean(axis=0) if np.any(labels == k)
+                else centroids[k]
+                for k in range(n_colors)
+            ])
+
+            # 检查收敛，中心移动小于tol就停止
+            shift = np.linalg.norm(new_centroids - centroids)
+            centroids = new_centroids
+            if shift <= tol:
+                break
+
+        # 迭代结束，统计每个簇的占比
+        dists = np.linalg.norm(pixels[:, np.newaxis] - centroids, axis=2)
+        labels = np.argmin(dists, axis=1)
+        total = len(pixels)
+        counts = np.array([np.sum(labels == k) for k in range(n_colors)])
+
+        # 按占比降序排列
+        order = np.argsort(-counts)
+        colors = centroids[order].astype(np.int32)
+        percentages = (counts[order] / total * 100).round(2)
+
+        # 返回兼容现有格式
+        result = []
+        for i in range(n_colors):
+            r, g, b = int(colors[i][0]), int(colors[i][1]), int(colors[i][2])
+            r, g, b = min(r, 255), min(g, 255), min(b, 255)
+            result.append({
+                'hex': f'#{r:02X}{g:02X}{b:02X}',
+                'rgb': (r, g, b),
+                'percentage': float(percentages[i])
+            })
+        return result
 
 
 # 测试代码
@@ -166,10 +169,9 @@ if __name__ == '__main__':
     print(f"预处理后尺寸: {processor._preprocess(200).size}")
     print()
 
-    # 提取主色调
-    print("【主色调提取 - 直方图法】")
-    colors = processor.get_dominant_colors(n_colors=5)
-
+    # 测试 K-Means 聚类
+    print("【K-Means 聚类】")
+    colors = processor.kmeans_colors(n_colors=1)
     for i, color in enumerate(colors, 1):
         print(f"  {i}. {color['hex']}  RGB{color['rgb']}  占比: {color['percentage']}%")
 
