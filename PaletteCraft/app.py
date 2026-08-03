@@ -1,7 +1,16 @@
+import os
+import dotenv
 from flask import Flask, request, jsonify, render_template
 
 from src.color_utils import ColorUtils
 from src.image_utils import ImageUtils
+
+
+dotenv.load_dotenv('../.env')
+# 子站只需绑定配置，不需要对外地址（它不生成跳转URL）
+BIND_HOST = os.getenv('BIND_HOST', '0.0.0.0')
+PALETTE_SERVER_PORT = os.getenv('PALETTE_SERVER_PORT', '5001')
+DEBUG = os.getenv('DEBUG')
 
 
 app = Flask(__name__)
@@ -38,7 +47,7 @@ def api_generate():
         return jsonify({'error': '参数错误'}), 400
 
     # 校验模式
-    if mode not in ['get_complementary_hues', 'get_analogous_hues', 'get_triadic_hues']:
+    if mode not in ['complementary', 'analogous', 'triadic']:
         return jsonify({'error': '模式错误'}), 400
 
     # 校验hex值
@@ -75,4 +84,4 @@ def api_extract():
     return  jsonify(data)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host=BIND_HOST, port=PALETTE_SERVER_PORT, debug=DEBUG)
