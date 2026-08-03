@@ -139,8 +139,6 @@
   .t-info { color: var(--cyan); }
   .t-err { color: var(--magenta); }
   .t-dim { color: var(--dim); }
-  .t-cursor { display: inline-block; width: 9px; height: 16px; background: var(--green); vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
   .t-link { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .t-link:hover { color: var(--magenta); }
   .term-input-line {
@@ -163,12 +161,13 @@
     font-family: 'Orbitron', 'Noto Sans SC', sans-serif; font-weight: 700;
     font-size: clamp(26px, 4vw, 38px); margin-top: 10px; letter-spacing: 1px;
   }
-  .grid-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .grid-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; }
   .card {
     position: relative; padding: 28px 26px; border-radius: 12px; text-decoration: none; color: var(--text);
     background: rgba(18,18,32,0.72); border: 1px solid rgba(255,255,255,0.08);
     transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
     display: flex; flex-direction: column; overflow: hidden;
+    flex: 1 1 300px; max-width: 400px;
   }
   .card::before {
     content: ''; position: absolute; inset: -2px; border-radius: 13px; z-index: -1; opacity: 0; transition: opacity 0.3s;
@@ -223,9 +222,9 @@
   }
   footer .sep { color: var(--magenta); }
 
-  @media (max-width: 900px) { .grid-cards { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 600px) {
-    .grid-cards { grid-template-columns: 1fr; }
+    .grid-cards { flex-direction: column; align-items: stretch; }
+    .card { max-width: none; }
     .nav { justify-content: center; text-align: center; }
     .term-out { padding: 14px 14px; font-size: 12px; min-height: 240px; }
     .term-input-line { padding: 8px 14px; }
@@ -325,14 +324,6 @@ var PROJECTS = [
     tags: ['Flask', 'Pillow', 'K-Means', 'HSV'],
     href: '/go_palette',
     status: 'live'
-  },
-  {
-    title: '色流谱系',
-    tagline: '生成艺术实验',
-    desc: 'p5.js 流场粒子与种子随机驱动的生成艺术。Perlin 噪声构造矢量场，色彩随力线漂流，每个种子都是一次唯一的涌现。',
-    tags: ['p5.js', 'Perlin', 'Seed'],
-    href: '#',            // TODO: 作品上线后替换为真实路由
-    status: 'coming'
   },
   {
     title: '下一个实验',
@@ -579,7 +570,6 @@ function initDust() {
 
 /* ============ 初始化 ============ */
 document.addEventListener('DOMContentLoaded', function () {
-  appendLine('<span class="t-dim">huan@main: ~$ <span class="t-cursor"></span></span>');
   boot();
   initTerminal();
   renderProjects();
