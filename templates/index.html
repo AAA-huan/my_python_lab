@@ -467,25 +467,26 @@ function boot() {
 }
 
 /* ============ 输入交互 ============ */
-var history = [], histIdx = -1;
+var cmdHistory = [], histIdx = -1;
 
 function initTerminal() {
   var input = $el('termInput');
   if (!input) return;
   input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
+    var isEnter = e.key === 'Enter' || e.keyCode === 13;
+    if (isEnter) {
       var v = input.value;
       input.value = '';
-      history.push(v); histIdx = history.length;
+      cmdHistory.push(v); histIdx = cmdHistory.length;
       handleCommand(v);
-    } else if (e.key === 'ArrowUp') {
-      if (histIdx > 0) { histIdx--; input.value = history[histIdx] || ''; }
+    } else if (e.key === 'ArrowUp' || e.keyCode === 38) {
+      if (histIdx > 0) { histIdx--; input.value = cmdHistory[histIdx] || ''; }
       e.preventDefault();
-    } else if (e.key === 'ArrowDown') {
-      if (histIdx < history.length - 1) { histIdx++; input.value = history[histIdx]; }
-      else { histIdx = history.length; input.value = ''; }
+    } else if (e.key === 'ArrowDown' || e.keyCode === 40) {
+      if (histIdx < cmdHistory.length - 1) { histIdx++; input.value = cmdHistory[histIdx]; }
+      else { histIdx = cmdHistory.length; input.value = ''; }
       e.preventDefault();
-    } else if (e.key === 'Tab') {
+    } else if (e.key === 'Tab' || e.keyCode === 9) {
       e.preventDefault();
       var cur = input.value.split(/\s+/)[0].toLowerCase();
       var match = COMMANDS.filter(function (c) { return c.indexOf(cur) === 0; })[0];
@@ -569,7 +570,18 @@ function initDust() {
 }
 
 /* ============ 初始化 ============ */
+function initErrorHandler() {
+  window.addEventListener('error', function (e) {
+    var msg = (e.message || 'unknown error') + (e.lineno ? ' (line ' + e.lineno + ')' : '');
+    appendLine('<span class="t-err">[runtime error] ' + escapeHtml(msg) + '</span>');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    appendLine('<span class="t-err">[promise rejection] ' + escapeHtml(String(e.reason || e)) + '</span>');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+  initErrorHandler();
   boot();
   initTerminal();
   renderProjects();
