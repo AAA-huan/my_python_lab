@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaletteCraft · terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Noto Sans Mono CJK SC', monospace;
+    background: #0d1117; color: #33ff77;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  /* CRT 扫描线 */
+  .crt::before {
+    content: ''; position: fixed; inset: 0; z-index: 60; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+    opacity: 0.5;
+  }
+  .crt::after {
+    content: ''; position: fixed; inset: 0; z-index: 60; pointer-events: none;
+    background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 60%, rgba(0,0,0,0.35) 100%);
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 34px 6vw 60px; position: relative; z-index: 10; }
+
+  .term-window {
+    border: 1px solid #2b3a33; border-radius: 12px; overflow: hidden;
+    background: #0d1117; box-shadow: 0 0 40px rgba(51,255,119,0.08);
+  }
+  .term-titlebar {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+    background: #161b22; border-bottom: 1px solid #2b3a33;
+  }
+  .tdot { width: 12px; height: 12px; border-radius: 50%; }
+  .tdot.r { background: #ff5f56; } .tdot.y { background: #ffbd2e; } .tdot.g { background: #27c93f; }
+  .term-title { margin-left: 12px; font-size: 12px; color: #8b949e; letter-spacing: 1px; }
+  .term-body { padding: 28px 26px; font-size: 14px; line-height: 1.9; min-height: 62vh; }
+
+  .line { white-space: pre-wrap; word-break: break-all; }
+  .prompt { color: #33ff77; }
+  .cmd { color: #ffffff; }
+  .ok { color: #33ff77; }
+  .warn { color: #ffbd2e; }
+  .info { color: #79c0ff; }
+  .muted { color: #8b949e; }
+  .magenta { color: #ff7b72; }
+
+  .cursor { display: inline-block; width: 9px; height: 17px; background: #33ff77; vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 彩色 ASCII 色板 */
+  .ascii-palette { display: flex; margin: 12px 0; gap: 0; }
+  .ascii-palette span { flex: 1; text-align: center; font-size: 12px; padding: 4px 0; }
+  .sw-1 { background: #0d1117; color: #33ff77; border: 1px solid #2b3a33; }
+  .sw-2 { background: #33ff77; color: #0d1117; }
+  .sw-3 { background: #79c0ff; color: #0d1117; }
+  .sw-4 { background: #ffbd2e; color: #0d1117; }
+  .sw-5 { background: #ff7b72; color: #0d1117; }
+
+  .cta-row { display: flex; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+  .btn-term {
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    padding: 14px 26px; border-radius: 8px; cursor: pointer; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-run {
+    background: #33ff77; color: #0d1117; font-weight: 700;
+    box-shadow: 0 0 24px rgba(51,255,119,0.3);
+  }
+  .btn-run:hover { background: #2eea6e; box-shadow: 0 0 40px rgba(51,255,119,0.5); transform: translateY(-2px); }
+  .btn-ghost-term {
+    background: transparent; color: #33ff77; border: 1px solid #2b3a33;
+  }
+  .btn-ghost-term:hover { border-color: #33ff77; background: rgba(51,255,119,0.08); }
+
+  .matrix-bg { position: fixed; inset: 0; z-index: 0; opacity: 0.22; pointer-events: none; }
+
+  .hero-sect { min-height: 92vh; display: flex; align-items: center; }
+  .footer-sect {
+    margin-top: 40px; padding-top: 22px; border-top: 1px solid #2b3a33;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    font-size: 12px; color: #8b949e;
+  }
+  @media (max-width: 560px) {
+    .term-body { padding: 20px 16px; font-size: 12px; }
+    .wrap { padding: 18px 4vw 40px; }
+  }
+</style>
+</head>
+<body class="crt">
+<canvas class="matrix-bg" id="matrix"></canvas>
+
+<div class="wrap">
+  <div class="term-window" id="win">
+    <div class="term-titlebar">
+      <span class="tdot r"></span><span class="tdot y"></span><span class="tdot g"></span>
+      <span class="term-title">palettecraft@main: ~</span>
+    </div>
+    <div class="term-body" id="out"></div>
+  </div>
+
+  <div class="footer-sect">
+    <span>[root@palettecraft]# 智能配色生成器 · 主站</span>
+    <span>v0.1.0 · EST 2026</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var out = document.getElementById('out');
+
+  var ctxLine = [];
+  // 渲染行：对象 {type, html} 直接输出；或 {prompt, cmd} 交互行
+  function line(opts) {
+    var html = '';
+    if (opts.prompt !== undefined) {
+      html += '<span class="prompt">' + opts.prompt + '</span>';
+      if (opts.cmd !== undefined) html += '<span class="cmd">' + opts.cmd + '</span>';
+    } else {
+      html = opts.html || opts.text || '';
+    }
+    return '<div class="line">' + html + '</div>';
+  }
+
+  var script = [
+    { p: '$ ', c: 'palettecraft --init --seed=42', html: '' },
+    { html: '<span class="muted">[ INFO ]</span> <span class="info">加载配色引擎 3/3</span> <span class="ok">[ OK ]</span>' },
+    { html: '<span class="muted">[ INFO ]</span> <span class="info">初始化 HSV 色相环 360°</span> <span class="ok">[ OK ]</span>' },
+    { html: '' },
+    { html: '<span class="muted">$</span> <span class="cmd">cat palettecraft.ascii</span>' },
+    { html: '<pre class="ascii">' +
+      '<span class="magenta">  _ __   __ _  __ _ _ __  _ __  _   _ _ __ ___  __ _ _ __</span>\n' +
+      '<span class="warn"> | \'_ \\ / _` |/ _` | \'_ \\| \'_ \\| | | | \'__/ _ \\ / _` | \'_ \\</span>\n' +
+      '<span class="ok">  | |_) | (_| | (_| | |_) | |_) | |_| | | | (_) | (_| | | | |</span>\n' +
+      '<span class="info">  | .__/ \\__,_|\\__, | .__/| .__/ \\__,_|_|  \\___/ \\__,_|_| |_|</span>\n' +
+      '<span class="muted">  |_|          |___/|_|   |_|       智能配色生成器</span></pre>' },
+    { html: '' },
+    { html: '<span class="muted">$</span> <span class="cmd">./palettecraft --list-methods</span>' },
+    { html: '<div class="ascii-palette"><span class="sw-1">#0D11</span><span class="sw-2">#33FF</span><span class="sw-3">#79C0</span><span class="sw-4">#FFBD</span><span class="sw-5">#FF7B</span></div>' },
+    { html: '  01. <span class="ok">complementary</span>  <span class="muted">互补色 · 色环 180°</span>' },
+    { html: '  02. <span class="ok">analogous</span>      <span class="muted">类比色 · 色环 ±30°</span>' },
+    { html: '  03. <span class="ok">triadic</span>        <span class="muted">三角色 · 色环 120°</span>' },
+    { html: '  04. <span class="ok">extract-image</span>  <span class="muted">图片主色 · K-Means</span>' },
+    { html: '' },
+    { html: '<span class="muted">$</span> <span class="cmd">./enter_palettecraft --browser</span>' },
+    { html: '' },
+    { html: '<div class="cta-row">' +
+      '<a class="btn-term btn-run" href="/go_palette">./enter → 进入工具</a>' +
+      '<a class="btn-term btn-ghost-term" href="#methods">查看可用命令</a>' +
+      '</div>' },
+    { html: '' },
+    { html: '<span class="prompt">$ </span><span class="cursor"></span>' }
+  ];
+
+  var si = 0;
+  function simpleType() {
+    if (si >= script.length) {
+      // 附加闪烁光标行保持
+      return;
+    }
+    var item = script[si];
+    var isInteractive = item.p !== undefined && item.c !== undefined;
+    var doneHtml = isInteractive
+      ? '<span class="prompt">' + item.p + '</span><span class="cmd">' + item.c + '</span>'
+      : (item.html || '');
+    if (isInteractive) {
+      // 打字
+      var lineEl = document.createElement('div');
+      lineEl.className = 'line';
+      out.appendChild(lineEl);
+      var full = item.p + item.c;
+      var ci = 0;
+      var iv = setInterval(function () {
+        if (ci <= full.length) {
+          var shown = full.slice(0, ci);
+          var display = shown
+            .replace(/^(\$)/g, '<span class="prompt">$</span>')
+            .replace(/\$palettecraft/g, '$<span class="cmd">palettecraft</span>')
+            .replace(/(palettecraft)/g, '<span class="cmd">$1</span>');
+          // 简单处理：第一个$是prompt
+          if (display.indexOf('<span class="prompt">$</span>') === -1 && shown.indexOf('$') === 0) {
+            display = '<span class="prompt">' + shown.slice(0, 1) + '</span>' + shown.slice(1);
+          }
+          lineEl.innerHTML = display;
+          ci++;
+        } else {
+          clearInterval(iv);
+          lineEl.innerHTML = doneHtml;
+          si++;
+          setTimeout(simpleType, 110);
+        }
+      }, 20);
+    } else {
+      out.innerHTML += line(item);
+      si++;
+      setTimeout(simpleType, 50);
+    }
+  }
+
+  setTimeout(simpleType, 500);
+
+  // ===== 数字雨背景 =====
+  var canvas = document.getElementById('matrix');
+  var ctx = canvas.getContext('2d');
+  var W, H, cols, drops = [];
+  var chars = '01色环调HSV公式$#<>/*-+=.';
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    cols = Math.floor(W / 16);
+    drops = new Array(cols).fill(1);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  setInterval(function () {
+    ctx.fillStyle = 'rgba(13,17,23,0.1)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#33ff77';
+    ctx.font = '14px "JetBrains Mono", monospace';
+    for (var i = 0; i < cols; i++) {
+      var ch = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(ch, i * 16, drops[i] * 16);
+      if (drops[i] * 16 > H && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }, 70);
+})();
+</script>
+</body>
+</html>
