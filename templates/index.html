@@ -125,8 +125,11 @@
   }
   .term-bar .badge { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); }
   .term-body {
-    padding: 20px 22px; min-height: 320px; max-height: 480px; overflow-y: auto;
+    display: flex; flex-direction: column;
     font-family: 'JetBrains Mono', 'Noto Sans Mono CJK SC', monospace; font-size: 13.5px; line-height: 1.9;
+  }
+  .term-out {
+    padding: 20px 22px; min-height: 320px; max-height: 440px; overflow-y: auto;
   }
   .term-line { white-space: pre-wrap; word-break: break-word; }
   .t-prompt { color: var(--green); }
@@ -140,10 +143,13 @@
   @keyframes blink { 50% { opacity: 0; } }
   .t-link { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .t-link:hover { color: var(--magenta); }
-  .term-input-line { display: flex; align-items: center; gap: 6px; }
+  .term-input-line {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 22px; border-top: 1px solid rgba(0,240,255,0.12); background: rgba(255,255,255,0.02);
+  }
   .term-input-line input {
     flex: 1; background: transparent; border: none; outline: none; color: #fff;
-    font-family: 'JetBrains Mono', monospace; font-size: 13.5px; caret-color: var(--green);
+    font-family: 'JetBrains Mono', monospace; font-size: 13.5px; caret-color: var(--green); min-width: 0;
   }
 
   /* ===== 作品墙 ===== */
@@ -221,7 +227,9 @@
   @media (max-width: 600px) {
     .grid-cards { grid-template-columns: 1fr; }
     .nav { justify-content: center; text-align: center; }
-    .term-body { padding: 16px 14px; font-size: 12px; min-height: 260px; }
+    .term-out { padding: 14px 14px; font-size: 12px; min-height: 240px; }
+    .term-input-line { padding: 8px 14px; }
+    .term-input-line input { font-size: 12px; }
     .cta-row { flex-direction: column; width: 100%; }
     .btn { width: 100%; text-align: center; }
   }
@@ -264,7 +272,13 @@
             <span class="title">huan@main: ~</span>
             <span class="badge">● bash</span>
           </div>
-          <div class="term-body" id="termOut"></div>
+          <div class="term-body" id="termBody">
+            <div class="term-out" id="termOut"></div>
+            <div class="term-input-line">
+              <span class="t-prompt">huan@main: ~$ </span>
+              <input id="termInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="终端命令">
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -454,7 +468,8 @@ function boot() {
         cmdLine('whoami');
         printWhoami();
         appendLine('<span class="t-dim">输入 help 查看可用命令，点击下方链接可打开作品</span>');
-        $el('termInput').focus();
+        var inp = $el('termInput');
+        if (inp) inp.focus();
       }, 150);
     }
   }, 200);
@@ -465,6 +480,7 @@ var history = [], histIdx = -1;
 
 function initTerminal() {
   var input = $el('termInput');
+  if (!input) return;
   input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       var v = input.value;
@@ -485,11 +501,14 @@ function initTerminal() {
       if (match) input.value = match;
     }
   });
-  $el('termOut').addEventListener('click', function (e) {
-    var t = e.target;
-    if (t && t.dataset && t.dataset.open !== undefined) openProject(parseInt(t.dataset.open, 10));
-    input.focus();
-  });
+  var body = $el('termBody');
+  if (body) {
+    body.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.dataset && t.dataset.open !== undefined) openProject(parseInt(t.dataset.open, 10));
+      input.focus();
+    });
+  }
 }
 
 /* ============ 作品墙渲染 ============ */
