@@ -171,7 +171,13 @@
 
 <script>
 /* ============ 配置 ============ */
-const WALLPAPER_URL = '/static/wallpaper.jpg';
+/* 壁纸来源：优先后端轮换接口（方案C），不可用则回退本地静态壁纸 */
+const WALLPAPER_EP = '/wallpaper';                // 后端：返回当前激活壁纸图片
+const WALLPAPER_LIST_EP = '/wallpaper/list';      // 后端：返回壁纸清单 JSON（可选增强）
+const WALLPAPER_FALLBACK = '/static/wallpaper.jpg'; // 本地兜底：无后端时仍可独立预览
+
+let WALLPAPER_URL = WALLPAPER_FALLBACK;           // 运行时解析出的当前壁纸地址
+let WALLPAPER_DATE = '';                          // 当前壁纸启用日期（用于下载命名）
 const INTRO_TEXT =
   '嗨，我是这个实验室的主人。\n这里是 my_python_lab，我的 Python 小实验作品橱窗，' +
   '也是光阴与流水汇聚的地方。\n每一个卡片都是一次算法与审美的小小尝试，欢迎探索和反馈。';
@@ -261,6 +267,27 @@ window.addEventListener('scroll', () => {
 /* ============ 头像点击刷新 ============ */
 document.getElementById('avatar').addEventListener('click', () => window.location.reload());
 
+/* ============ 壁纸地址解析（后端接口优先，失败回退本地） ============ */
+async function resolveWallpaper() {
+  try {
+    const res = await fetch(WALLPAPER_EP + '?probe=1', { method: 'HEAD' });
+    if (res.ok) {
+      WALLPAPER_URL = WALLPAPER_EP;
+      // 尝试获取激活壁纸日期用于下载命名（增强功能，失败不影响使用）
+      try {
+        const list = await fetch(WALLPAPER_LIST_EP);
+        if (list.ok) {
+          const data = await list.json();
+          if (data && data.active) WALLPAPER_DATE = data.active.start || '';
+        }
+      } catch (e) { /* 清单接口可选，忽略 */ }
+      return;
+    }
+  } catch (e) { /* 后端未启动，走兜底 */ }
+  WALLPAPER_URL = WALLPAPER_FALLBACK;
+  WALLPAPER_DATE = '';
+}
+
 /* ============ 壁纸主色调提取 + 组件配色联动 ============ */
 function loadWallpaperColor() {
   const img = new Image();
@@ -304,7 +331,8 @@ document.getElementById('dlBtn').addEventListener('click', async () => {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'my_python_lab-wallpaper.jpg';
+    const suffix = WALLPAPER_DATE ? '-' + WALLPAPER_DATE : '';
+    a.href = url; a.download = 'my_python_lab-wallpaper' + suffix + '.jpg';
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   } catch (e) {
@@ -313,9 +341,14 @@ document.getElementById('dlBtn').addEventListener('click', async () => {
 });
 
 /* ============ 初始化 ============ */
-renderCards();
-loadWallpaperColor();
-setTimeout(() => typewriter(INTRO_TEXT), 400); // 等壁纸色就绪后再打字
+(async () => {
+  await resolveWallpaper();
+  // 背景 <img> 与取色共用同一壁纸地址，保证视觉与配色一致
+  document.getElementById('wallpaper').src = WALLPAPER_URL;
+  renderCards();
+  loadWallpaperColor();
+  setTimeout(() => typewriter(INTRO_TEXT), 400); // 等壁纸色就绪后再打字
+})();
 </script>
 </body>
 </html>
