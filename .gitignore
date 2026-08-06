@@ -230,3 +230,9 @@ PaletteCraft/AGENTS.md
 /DEVELOPMENT.md
 uv.lock
 .python-version
+
+# 主站壁纸（二进制图片不入库，见 static/wallpapers/README.md 占位说明）
+static/wallpaper.jpg
+static/wallpapers/*
+!static/wallpapers/
+!static/wallpapers/*.md
