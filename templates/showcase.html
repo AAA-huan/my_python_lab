@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的 Python 小实验</title>
+<meta name="theme-color" content="#111820">
+<meta name="description" content="我的 Python 小实验·作品橱窗，光阴与流水汇聚的地方。">
+<style>
+  :root {
+    --theme: #111820;
+    --card-bg: #172757c4;
+    --text: #efefef;
+    --accent: #597df5;
+    --placeholder: #383a3f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, Helvetica Neue, Helvetica, Arial, PingFang SC,
+      Hiragino Sans GB, Microsoft YaHei, Heiti SC, WenQuanYi Micro Hei, sans-serif;
+    color: var(--text); min-height: 100vh;
+    -webkit-tap-highlight-color: transparent; font-size: 16px;
+  }
+  a { color: inherit; text-decoration: inherit; }
+  button, input { -webkit-appearance: none; border: none; outline: none; font-family: inherit; }
+
+  ::-moz-selection { background-color: #2783eb66; }
+  ::selection { background-color: #2783eb66; }
+
+  /* ==== Wallpaper background ==== */
+  #wallpaper {
+    position: fixed; inset: 0; z-index: -1; width: 100%; height: 100%;
+    object-fit: cover; background-color: var(--placeholder); pointer-events: none;
+  }
+  #wallpaper-overlay {
+    position: fixed; inset: 0; z-index: -2; width: 100%; height: 100%;
+    background-color: var(--placeholder);
+  }
+
+  /* ==== Reading progress bar ==== */
+  .pbar { display: block; position: fixed; top: 0; left: 0; border-radius: 3.5px; width: 0%; height: 4px; z-index: 2022; background: linear-gradient(to right, #37e270 0%, #2ee9c7 100%); opacity: 0; transition: opacity .3s; }
+
+  /* ==== Main layout ==== */
+  main { color: var(--text); width: 85%; max-width: 720px; min-width: 300px; padding: 1rem; font-size: 1.08rem; margin: auto; margin-top: 8rem; padding-bottom: 4rem; }
+
+  /* ==== Avatar identity ==== */
+  .me { margin-bottom: 2rem; text-align: center; }
+  .me .avatar {
+    cursor: pointer; width: 6rem; height: 6rem; border-radius: 50%;
+    border: 4.5px solid #efefef; margin: auto; box-shadow: 0 4px 4px rgba(0,0,0,0.43);
+    -webkit-user-select: none; user-select: none; position: relative; overflow: hidden;
+    transition: .2s; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.25); font-size: 2.6rem;
+  }
+  .me .avatar:before { content: ""; position: absolute; top: -80%; left: -40%; height: 200%; width: 24px; transform: rotate(30deg); background-color: rgba(255,255,255,0.32); transition: none; }
+  .me .avatar:hover:before { left: 100%; top: 10%; transition: .45s; }
+  .me .avatar:hover { border-color: var(--accent-hover, #696eff); transform: scale(1.05); }
+  .me .intro {
+    margin-top: 1.4rem; color: #353535; padding: 16px 20px; border-radius: 5px;
+    box-shadow: -3px 3px 3px rgba(0,0,0,0.23); text-align: left;
+    background-color: rgba(255,255,255,0.94);
+  }
+  .me .intro .cursor { animation: blinking-cursor 1s infinite; font-weight: 600; }
+  .me .intro .type-line { white-space: pre-wrap; word-break: break-word; line-height: 1.7; }
+  /* skeleton */
+  .me .intro .skeleton{
+    --skeleton-light: rgba(255,255,255,.165);
+    background: linear-gradient(100deg,rgba(255,255,255,0) 40%,var(--skeleton-light) 50%,rgba(255,255,255,0) 60%);
+    background-color: #afb5bda6; background-size: 200% 100%; background-position-x: 130%;
+    animation: 1.32s skeleton-loading ease-in-out infinite;
+    height: 25px; border-radius: 6px; margin: 10px 0;
+  }
+  @keyframes skeleton-loading { to { background-position-x: -25%; } }
+  @keyframes blinking-cursor { 0%{opacity:0} 45%{opacity:1} 55%{opacity:1} 100%{opacity:0} }
+
+  /* ==== Nav cards ==== */
+  .nav { display: flex; flex-wrap: wrap; }
+  .nav { counter-reset: none; }
+  .nav .wrap { width: 100%; --space: 1.25rem; padding: 0 0 1.25rem 0; }
+  @media screen and (min-width: 520px) {
+    .nav .wrap { width: 50%; padding: 0 var(--space) var(--space) 0; }
+    .nav .wrap:nth-child(2n) { padding: 0 0 var(--space) var(--space); }
+  }
+  @media screen and (min-width: 1080px) {
+    .nav .wrap { padding: 0 var(--space) var(--space) 0 !important; width: 33.33%; }
+    .nav .wrap:nth-child(3n) { padding: 0 0 var(--space) 0 !important; }
+  }
+  .nav .wrap .item {
+    height: 100%; width: 100%; border-radius: 3px; position: relative; z-index: 1;
+    background-color: var(--card);
+    -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+    box-shadow: 0 5px 12px rgba(0,0,0,0.5);
+    /* 入场动画 */
+    opacity: 0; animation-timing-function: ease-in-out; animation-duration: .25s;
+    animation-fill-mode: forwards; transform-origin: left center; animation-name: app-enter;
+    animation-delay: var(--delay);
+  }
+  @keyframes app-enter { 0%{opacity:0;transform:scaleX(.68)} 100%{opacity:1;transform:scaleX(1)} }
+  .nav .wrap .item:before {
+    content: ""; border-radius: inherit; top: 0; left: 0; width: 8px; height: 100%;
+    position: absolute; z-index: -1; background-color: var(--accent); transition: .2s;
+  }
+  .nav .wrap .item:hover:before { width: 100%; background-color: var(--accent-hover, rgba(63,99,216,0.32)); transition: .35s; }
+  .nav .wrap .item a {
+    padding: 1.5rem; display: block; height: 100%; width: 100%; min-height: 138px;
+    display: flex; flex-direction: column; justify-content: space-between; border-radius: inherit;
+  }
+  .nav .wrap .item:hover a { animation-name: blink; animation-iteration-count: 1; animation-duration: .7s; animation-timing-function: ease-in-out; }
+  @keyframes blink { 0%{box-shadow:0 0 .5px rgba(104,169,255,0.9)} 100%{box-shadow:0 0 .5px 10px rgba(99,139,226,0)} }
+
+  .item .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .item .icon { font-size: 1.6rem; line-height: 1; }
+  .item .name { font-size: 1.02rem; font-weight: 600; margin-top: .35rem; }
+  .item .caption { font-size: .8rem; opacity: .72; margin-top: 2px; }
+  .item .detail { font-size: .84rem; opacity: .55; line-height: 1.5; margin-top: 8px; flex: 1; }
+  .item .card-bottom { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; }
+  .item .badge { font-size: .68rem; padding: 2px 8px; border-radius: 20px; border: 1px solid currentColor; opacity: .8; }
+  .item .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .item .tag { font-size: .64rem; padding: 1px 7px; border-radius: 3px; background: rgba(255,255,255,0.12); }
+
+  .item.placeholder .name { opacity: .5; }
+  .item.placeholder .card-bottom { justify-content: flex-end; }
+
+  /* ==== Status colors ==== */
+  .badge-live { color: #63e2b7; border-color: #63e2b7; }
+  .badge-wip { color: #f6c453; border-color: #f6c453; }
+  .badge-plan { color: #9aa0b5; border-color: #9aa0b5; }
+
+  /* ==== Download wallpaper button ==== */
+  .dl-btn {
+    position: fixed; right: 20px; bottom: 20px; z-index: 100;
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 20px; cursor: pointer;
+    background-color: rgba(23,39,87,0.7); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+    color: var(--text); font-size: .78rem; box-shadow: 0 4px 12px rgba(0,0,0,.4); transition: .2s;
+  }
+  .dl-btn:hover { background-color: rgba(89,125,245,.45); }
+
+  @media screen and (max-width: 520px) {
+    main { width: 92%; margin-top: 5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wallpaper-overlay"></div>
+<img id="wallpaper" src="/static/wallpaper.jpg" alt="背景壁纸">
+<div class="pbar" id="pbar"></div>
+
+<main>
+  <!-- 身份区 -->
+  <section class="me">
+    <div class="avatar" id="avatar" title="点击刷新">
+      <span>🐍</span>
+    </div>
+    <div class="intro" id="intro">
+      <div id="introSkeleton">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton" style="width:70%"></div>
+      </div>
+      <div id="introContent" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- 实验卡片 -->
+  <section class="nav" id="nav"></section>
+</main>
+
+<button class="dl-btn" id="dlBtn">⬇ 下载壁纸</button>
+
+<script>
+/* ============ 配置 ============ */
+const WALLPAPER_URL = '/static/wallpaper.jpg';
+const INTRO_TEXT =
+  '嗨，我是这个实验室的主人。\n这里是 my_python_lab，我的 Python 小实验作品橱窗，' +
+  '也是光阴与流水汇聚的地方。\n每一个卡片都是一次算法与审美的小小尝试，欢迎探索和反馈。';
+
+/* 实验数据：将来可由后端渲染时注入 */
+const experiments = [
+  {
+    icon: '🎨', name: 'PaletteCraft', caption: '智能配色生成器',
+    detail: '输入主色或上传图片，算法自动生成和谐配色方案。HSV 色相环 + 直方图聚类。',
+    status: '进行中', statusClass: 'badge-wip',
+    tags: ['Flask', 'p5.js', '配色'],
+    url: 'http://localhost:5001'
+  },
+  { icon: '🔮', name: '???', caption: '下一个实验', detail: '等待你的想法，这里将生长出新的 Python 小玩意。', status: '计划中', statusClass: 'badge-plan', tags: [], url: null },
+  { icon: '📐', name: '???', caption: '下一个实验', detail: '另一个待兴建的角落，算法与美学的下一场约会。', status: '计划中', statusClass: 'badge-plan', tags: [], url: null }
+];
+
+/* ============ 渲染实验卡片 ============ */
+function renderCards() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  experiments.forEach((exp, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'wrap';
+    const inner = exp.url
+      ? `<a href="${exp.url}" target="_blank" rel="noopener">`
+      : `<a href="javascript:void(0)">`;
+    const tags = exp.tags.length
+      ? `<div class="tags">${exp.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`
+      : '<div></div>';
+    wrap.innerHTML = `
+      <div class="item ${exp.url ? '' : 'placeholder'}" style="--delay:${0.1 + i * 0.12}s">
+        ${inner}
+          <div class="card-top"><span class="icon">${exp.icon}</span>
+            <span class="badge ${exp.statusClass}">${exp.status}</span></div>
+          <div class="name">${exp.name}</div>
+          <div class="caption">${exp.caption}</div>
+          <div class="detail">${exp.detail}</div>
+          <div class="card-bottom">${tags}</div>
+        </a>
+      </div>`;
+    nav.appendChild(wrap);
+  });
+}
+
+/* ============ 打字机介绍 ============ */
+function typewriter(text, onDone) {
+  const content = document.getElementById('introContent');
+  const skeleton = document.getElementById('introSkeleton');
+  // 骨架先淡出
+  skeleton.style.transition = 'opacity .25s';
+  skeleton.style.opacity = '0';
+
+  setTimeout(() => {
+    skeleton.style.display = 'none';
+    content.style.display = 'block';
+    let i = 0;
+    content.textContent = '';
+    const speed = 45;
+    function tick() {
+      if (i < text.length) {
+        // 渲染当前已输入 + 光标
+        content.innerHTML = escapeHtml(text.slice(0, i + 1)) + '<span class="cursor">|</span>';
+        i++;
+        setTimeout(tick, speed);
+      } else {
+        content.innerHTML = escapeHtml(text) + '<span class="cursor">|</span>';
+        if (onDone) onDone();
+      }
+    }
+    tick();
+  }, 60);
+}
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ============ 滚动进度条 ============ */
+const pbar = document.getElementById('pbar');
+window.addEventListener('scroll', () => {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+  pbar.style.width = pct + '%';
+  pbar.style.opacity = pct > 1 ? '1' : '0';
+});
+
+/* ============ 头像点击刷新 ============ */
+document.getElementById('avatar').addEventListener('click', () => window.location.reload());
+
+/* ============ 壁纸主色调提取 + 组件配色联动 ============ */
+function loadWallpaperColor() {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = WALLPAPER_URL + '?v=' + Date.now(); // 加时间戳避免缓存，替换壁纸后即时生效
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 24; canvas.height = 24; // 采样小图即可
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 24, 24);
+    const data = ctx.getImageData(0, 0, 24, 24).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i+3] > 0) { r += data[i]; g += data[i+1]; b += data[i+2]; n++; }
+    }
+    r = Math.round(r/n); g = Math.round(g/n); b = Math.round(b/n);
+    // 生成比壁纸平均色更亮的强调色（增强卡片可见度）
+    const acR = Math.min(255, r + 100);
+    const acG = Math.min(255, g + 100);
+    const acB = Math.min(255, b + 100);
+    const rs = document.documentElement.style;
+    rs.setProperty('--accent', `rgb(${r},${g},${b})`);
+    rs.setProperty('--accent-hover', `rgba(${acR},${acG},${acB},0.32)`);
+    // 占位背景消失
+    const overlay = document.getElementById('wallpaper-overlay');
+    overlay.style.transition = 'opacity .5s';
+    overlay.style.opacity = '0';
+    document.getElementById('wallpaper').style.opacity = '1';
+  };
+  img.onerror = () => {
+    // 壁纸加载失败：用纯色占位
+    document.getElementById('wallpaper').style.display = 'none';
+    overlay.style.background = 'var(--theme)';
+  };
+}
+
+/* ============ 下载壁纸 ============ */
+document.getElementById('dlBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch(WALLPAPER_URL);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'my_python_lab-wallpaper.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('壁纸下载失败，请稍后再试');
+  }
+});
+
+/* ============ 初始化 ============ */
+renderCards();
+loadWallpaperColor();
+setTimeout(() => typewriter(INTRO_TEXT), 400); // 等壁纸色就绪后再打字
+</script>
+</body>
+</html>
